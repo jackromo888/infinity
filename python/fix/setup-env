@@ -1,0 +1,20 @@
+#!/bin/bash
+
+if [[ "$1" = "-f" ]]; then
+  shift
+  rm -rf env
+fi
+
+if ! [[ -f env/bin/activate ]]; then
+  python3 -mvenv env
+  env/bin/pip install -U pip
+  env/bin/pip install -U pip-tools
+fi
+
+arch_reqs="requirements-$(uname)-$(uname -m).txt"
+if ! [[ -f "$arch_reqs" ]]; then
+  echo "you may need to do env/bin/pip-compile --generate-hashes -o '$arch_reqs'"
+  exit 1
+fi
+
+env/bin/pip install -r "$arch_reqs"
