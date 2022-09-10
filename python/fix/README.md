@@ -16,7 +16,7 @@ Some notes:
 Note that on Windows you will need to substitue `env/bin` with `env\Scripts`.
 
  - In your terminal, change directory to this directory.
- - Run `./setup-env` until it gives back a successful exit message. This command will create a virtual environment nested under this directory.
+ - Run `./setup-env`. It may give you further instructions to follow. This command will create a virtual environment nested under this directory.
  - Make sure the terminal environment contains your API credentials:
    - `FTX_API_KEY` and `FTX_API_SECRET`
    - These environment variables should be set to the values given to you on the FTX website. See `https://ftx.us/settings/api` in the US, or `https://ftx.com/settings/api` for international API Key setup.
