@@ -1,20 +1,112 @@
 #!/bin/bash
 
-if [[ "$1" = "-f" ]]; then
-  shift
-  rm -rf env
-fi
+note() {
+  echo "$0: note: $*"
+}
 
-if ! [[ -f env/bin/activate ]]; then
-  python3 -mvenv env
-  env/bin/pip install -U pip
-  env/bin/pip install -U pip-tools
-fi
+error() {
+  echo "$0: error: $*"
+}
 
-arch_reqs="requirements-$(uname)-$(uname -m).txt"
-if ! [[ -f "$arch_reqs" ]]; then
-  echo "you may need to do env/bin/pip-compile --generate-hashes -o '$arch_reqs'"
+die() {
+  error "$@"
   exit 1
-fi
+}
 
-env/bin/pip install -r "$arch_reqs"
+usage() {
+  echo "$0"
+  echo "usage:"
+  printf "\t-f\tforce re-creation of virtual env dir\n"
+  printf "\t-g\tgenerate new platform-specific pip sync file\n"
+  echo
+}
+
+get-global-python-version() (
+  deactivate >/dev/null 2>&1 ||:
+  "$PYTHON" -c 'import sys; print("%d.%d" % (sys.version_info.major, sys.version_info.minor), end="")'
+)
+
+ensure-env-exists() (
+  # Fallthrough to regular virtual env setup.
+  if ! [[ -f env/bin/activate ]]; then
+    note "creating virtual env..."
+    "$PYTHON" -m venv env || die "could not create virtual env with '$PYTHON' -m venv env"
+    env/bin/pip install -U pip || die "failed to upgrade pip"
+    env/bin/pip install -U pip-tools || die "failed to install pip-tools"
+  fi
+  return 0
+)
+
+arch-reqs-filename() {
+  # Construct the appropriate name of our platform-specific requirements file.
+  printf "requirements-%s-%s-%s.txt" "$(uname)" "$(uname -m)" "py-$(get-global-python-version)"
+}
+
+generate-hashes-for-platform() {
+  # Make sure we've got a platform-specific hashed requirements file.
+  arch_reqs="$(arch-reqs-filename)"
+  if [[ -f "$arch_reqs" ]]; then
+    error "your platform-specific requirements file already exists! [filename='$arch_reqs']"
+    note "you can probably just run '$0'"
+    return 1
+  fi
+
+  ensure-env-exists || die "failed to find virtual env"
+  env/bin/pip-compile --generate-hashes --allow-unsafe -q -o "$arch_reqs" || die "failed to create '$arch_reqs'"
+  note "finished compiling '$arch_reqs'!"
+  note "please re-run '$0'"
+  return 0
+}
+
+# Get out of any other virtual environment.
+deactivate >/dev/null 2>&1 ||:
+
+# Defaults. Can be overriden.
+: "${PYTHON:=python3}"
+
+note "running with Python version $(get-global-python-version) [PYTHON=$PYTHON]"
+
+while getopts ":fg" opt; do
+  case "${opt}" in
+    f )
+      note "removing existing ./env dir"
+      rm -rf env
+      ;;
+    g )
+      generate-hashes-for-platform
+      exit $?
+      ;;
+    : )
+      die "Invalid option: $OPTARG requires an argument"
+      usage
+      exit 1
+      ;;
+    * )
+      usage
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+install-requirements() {
+  ensure-env-exists || die "failed to create virtual env"
+
+  arch_reqs="$(arch-reqs-filename)"
+
+  if ! [[ -f "$arch_reqs" ]]; then
+    error "we have not yet constructed a platform-specific requirements file for your platform! [filename='$arch_reqs']"
+    note "you can work around this missing file by building it yourself"
+    note "try running: '$0 -g'"
+    exit 1
+  fi
+
+  note 'running pip-sync to install requirements...'
+  env/bin/pip-sync "$arch_reqs" || die 'pip-sync failed'
+}
+
+install-requirements
+
+note "$0 completed successfully!"
+note "run this demo with the command 'env/bin/python -m fix.fix {ftx,ftxus}'"
+note "be sure to set the environment variables FTX_API_KEY and FTX_API_SECRET prior to running"

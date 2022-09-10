@@ -2,10 +2,12 @@
 
 # shellcheck disable=SC2207
 python_files=(
-  $(git ls-files | grep '\.py$')
+  $(git ls-files "$(dirname "$0")" | grep '\.py$')
 )
 env/bin/autopep8 -i "${python_files[@]}" || exit 1
 env/bin/isort --overwrite-in-place "${python_files[@]}" || exit 1
 env/bin/autoflake -i --remove-all-unused-imports "${python_files[@]}" || exit 1
 env/bin/mypy "${python_files[@]}" || exit 1
 env/bin/pylint "${python_files[@]}" || exit 1
+
+shellcheck check setup-env || exit 1

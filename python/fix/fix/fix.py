@@ -32,7 +32,8 @@ def check_env_vars() -> None:
     required_env_vars = ['FTX_API_SECRET', 'FTX_API_KEY']
     for env_var in required_env_vars:
         if env_var not in os.environ:
-            eprint(f"missing env var: {env_var}. quitting...")
+            eprint(f"missing env var: {env_var}. make sure you have set all required "
+                   f"variables: {required_env_vars!r}.")
             sys.exit(1)
 
 
