@@ -442,3 +442,4 @@ setuptools==65.3.0 \
     #   pip-tools
     #   zope-event
     #   zope-interface
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
